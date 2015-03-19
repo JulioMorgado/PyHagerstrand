@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from random import randint
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -18,6 +19,16 @@ class SimpleDiffusion(object):
     :param initial_diff: (int,int) Coordenadas del difusor inicial
     :param p0: float Probabilidad de auto-difusión
 
+    :attribute _space: np.array(M,N,dtype=np.int8) El espacio disponible
+    :attribute _pop_array: np.array(M*N,pob,dtype=np.bool) array de habitantes
+                           en cada celda
+    :attribute _infected_pop: list (space_idx,int) Lista de los índices de las
+                                celdas adoptantes. La primera entrada es el
+                                índice aplanado de la celda en la matriz space y
+                                la segunda es el número del poblador en
+                                pop_array. Es decir, la lista de las direcciones
+                                de cada poblador infectado.
+
     """
 
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=(50,50),
@@ -27,7 +38,7 @@ class SimpleDiffusion(object):
         self.N = N
         self._pob = pob
         self._p0 = p0
-        self._infected_cells = []
+        self._infected_pop = []
         self._space = np.zeros((N,M),dtype=np.int8)
         self._pop_array = np.zeros((len(np.ravel(self._space)),pob),
                                     dtype=np.bool)
@@ -35,7 +46,10 @@ class SimpleDiffusion(object):
             raise ValueError("Las coordenadas del difusor inicial no caen \
                                 en el espacio")
         self._space[initial_diff[0],initial_diff[1]] = 1
-        self._update_pop_array(initial_diff,False)
+        #Modificamos también al poblador original:
+        index = self._space2pop_index(initial_diff)
+        self._pop_array[index][0] = True
+        self._infected_pop.append((index,0))
         if mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
@@ -58,18 +72,38 @@ class SimpleDiffusion(object):
 
 
 
-    def _update_pop_array(self,index,rand=True):
-        """Actualiza la entrada index del array de población."""
-        current = self._pop_array[self._space2pop_index(index)]
-        if len(np.nonzero(current)[0]) < self._pob:
-            current[len(np.nonzero(current)[0])] = True
-            self._infected_cells.append(self._space2pop_index(index))
-            return True
+    def _update_pop_array(self,pob_adress):
+        """Propaga hacia el habitante en pob_adress si es no-adoptante.
+
+        :param pob_adress: (int,int) la dirección del habitante a propagar.
+                            La primera entrada es el índice (aplanado) en space
+                            y la segunda es el número del poblador en la celda
+        """
+        current = self._pop_array[pob_adress[0]]
+        #checo si es no-adoptante
+        if current[pob_adress[1]] == False:
+            current[pob_adress[1]] = True
         else:
-            return False
+            pass
+
 
     def _space2pop_index(self,index):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
+        print "el indice" + str(index)
         return np.ravel_multi_index(index,dims=(self.M,self.N))
+
+    def _random_adress(self):
+        """Regresa una dirección (pob_adress) al azar."""
+        return (randint(0,(self.M*self.N) - 1),randint(0,self._pob - 1))
+    #
+    # def diffuse(self,max_iter):
+    #     """Realiza la simulación.
+    #
+    #     :param max_iter: int Máximo número de iteraciones a simular.
+    #                      La simulación se puede detener antes si el espacio
+    #                      está lleno
+    #     """
+    #
+    #     for cell in self._infected_pop:
