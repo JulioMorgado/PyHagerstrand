@@ -18,6 +18,7 @@ class SimpleDiffusion(object):
     :param pob: int población en cada celda
     :param initial_diff: (int,int) Coordenadas del difusor inicial
     :param p0: float Probabilidad de auto-difusión
+    :param max_iter: int Máximo número de iteraciones
 
     :attribute _space: np.array(M,N,dtype=np.int8) El espacio disponible
     :attribute _pop_array: np.array(M*N,pob,dtype=np.bool) array de habitantes
@@ -32,12 +33,14 @@ class SimpleDiffusion(object):
     """
 
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=(50,50),
-                p0=0.3):
+                p0=0.3, max_iter=1000):
 
         self.M = M
         self.N = N
         self._pob = pob
         self._p0 = p0
+        self.max_iter = max_iter
+        self.iteration = 0
         self._infected_pop = []
         self._space = np.zeros((N,M),dtype=np.int8)
         self._pop_array = np.zeros((len(np.ravel(self._space)),pob),
@@ -79,6 +82,7 @@ class SimpleDiffusion(object):
                             La primera entrada es el índice (aplanado) en space
                             y la segunda es el número del poblador en la celda
         """
+        print "entr'e"
         current = self._pop_array[pob_adress[0]]
         #checo si es no-adoptante
         if current[pob_adress[1]] == False:
@@ -97,13 +101,25 @@ class SimpleDiffusion(object):
     def _random_adress(self):
         """Regresa una dirección (pob_adress) al azar."""
         return (randint(0,(self.M*self.N) - 1),randint(0,self._pob - 1))
-    #
-    # def diffuse(self,max_iter):
+
+    # def diffuse(self):
     #     """Realiza la simulación.
     #
-    #     :param max_iter: int Máximo número de iteraciones a simular.
-    #                      La simulación se puede detener antes si el espacio
-    #                      está lleno
+    #     :param iter: int iteración en la que vamos
     #     """
+    #     print self.iteration
+    #     if self.iteration == self.max_iter:
+    #         print "acabé"
+    #         return
+    #     else:
+    #         for cell in self._infected_pop:
+    #             adress = self._random_adress()
+    #             if adress == cell:
+    #                 #TODO: hay que cambiar, podría pasar obtener dos veces
+    #                 #el mismo
+    #                 adress = self._random_adress()
     #
-    #     for cell in self._infected_pop:
+    #             self._update_pop_array(adress)
+    #
+    #     self.iteration += 1
+    #     #self.diffuse()
