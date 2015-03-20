@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import sys
 from random import randint
+from random import uniform
 import numpy as np
 from scipy.spatial.distance import cdist
 
 
-
+sys.setrecursionlimit(1500)
 class SimpleDiffusion(object):
     """Modelo simple de difusión espacial basado en Hägerstrand.
 
@@ -20,7 +22,7 @@ class SimpleDiffusion(object):
     :param p0: float Probabilidad de auto-difusión
     :param max_iter: int Máximo número de iteraciones
 
-    :attribute _space: np.array(M,N,dtype=np.int8) El espacio disponible
+    :attribute space: np.array(M,N,dtype=np.int8) El espacio disponible
     :attribute _pop_array: np.array(M*N,pob,dtype=np.bool) array de habitantes
                            en cada celda
     :attribute _infected_pop: list (space_idx,int) Lista de los índices de las
@@ -40,15 +42,16 @@ class SimpleDiffusion(object):
         self._pob = pob
         self._p0 = p0
         self.max_iter = max_iter
+        self.mif_size = mif_size
         self.iteration = 0
         self._infected_pop = []
-        self._space = np.zeros((N,M),dtype=np.int8)
-        self._pop_array = np.zeros((len(np.ravel(self._space)),pob),
+        self.space = np.zeros((N,M),dtype=np.int8)
+        self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
                                     dtype=np.bool)
         if initial_diff[0] > M or initial_diff[1] > N:
             raise ValueError("Las coordenadas del difusor inicial no caen \
                                 en el espacio")
-        self._space[initial_diff[0],initial_diff[1]] = 1
+        self.space[initial_diff[0],initial_diff[1]] = 1
         #Modificamos también al poblador original:
         index = self._space2pop_index(initial_diff)
         self._pop_array[index][0] = True
@@ -75,18 +78,19 @@ class SimpleDiffusion(object):
 
 
 
-    def _update_pop_array(self,pob_adress):
+    def _propagate(self,pob_adress):
         """Propaga hacia el habitante en pob_adress si es no-adoptante.
 
         :param pob_adress: (int,int) la dirección del habitante a propagar.
                             La primera entrada es el índice (aplanado) en space
                             y la segunda es el número del poblador en la celda
         """
-        print "entr'e"
-        current = self._pop_array[pob_adress[0]]
+
         #checo si es no-adoptante
-        if current[pob_adress[1]] == False:
-            current[pob_adress[1]] = True
+        if self._pop_array[pob_adress[0]][pob_adress[1]] == False:
+            self._pop_array[pob_adress[0]][pob_adress[1]] = True
+            self._infected_pop.append(pob_adress)
+            print "infecté al "  + str(pob_adress)
         else:
             pass
 
@@ -95,31 +99,79 @@ class SimpleDiffusion(object):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
-        print "el indice" + str(index)
         return np.ravel_multi_index(index,dims=(self.M,self.N))
+
+    def _pop2space_index(self,index):
+        """Regresa la tupla (i,j) que corresponde al índice aplanado."""
+        return np.unravel_index(index,dims=(self.M,self.N))
+
+    def _mif2delta(self,index):
+        """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
+
+        return np.unravel_index(index,dims=(self.mif_size,self.mif_size))
 
     def _random_adress(self):
         """Regresa una dirección (pob_adress) al azar."""
         return (randint(0,(self.M*self.N) - 1),randint(0,self._pob - 1))
 
-    # def diffuse(self):
-    #     """Realiza la simulación.
-    #
-    #     :param iter: int iteración en la que vamos
-    #     """
-    #     print self.iteration
-    #     if self.iteration == self.max_iter:
-    #         print "acabé"
-    #         return
-    #     else:
-    #         for cell in self._infected_pop:
-    #             adress = self._random_adress()
-    #             if adress == cell:
-    #                 #TODO: hay que cambiar, podría pasar obtener dos veces
-    #                 #el mismo
-    #                 adress = self._random_adress()
-    #
-    #             self._update_pop_array(adress)
-    #
-    #     self.iteration += 1
-    #     #self.diffuse()
+    def _select_from_mif(self):
+        """Regresa una dirección (pob_adress) a partir del MIF."""
+        rnd = uniform(0,1)
+        index = np.nonzero(self._mif>rnd)[0][0]
+        return self._mif2delta(index)
+
+    def _get_propagation_adress(self,adress):
+        """Regresa una dirección propagada por el MIF"""
+
+        delta = self._select_from_mif()
+        space_adress = self._pop2space_index(adress)
+        propagation_adress = (space_adress[0] + delta[0],
+                              space_adress[1] + delta[1])
+        return self._space2pop_index(propagation_adress)
+
+    def spatial_diffusion(self):
+        """Propaga al estilo Hagerstrand."""
+
+        print self.iteration
+        if self.iteration == self.max_iter:
+            self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
+            print "acabé"
+            return
+        else:
+            for adress in self._infected_pop:
+                propagated_adress = tuple(adress)
+                cond = propagated_adress == adress
+                while (cond):
+                    propagated_adress = self._get_propagation_adress(adress)
+                    cond = propagated_adress == adress
+
+                self._propagate(propagated_adress)
+                self.iteration += 1
+                #self.space = np.sum(self._pop_array.reshape(self.M,self.N))
+                print "Hay %i adoptantes" % len(self._infected_pop)
+                return self.random_diffusion()
+
+
+
+
+    def random_diffusion(self):
+        """Propaga aleatoriamente en el espacio."""
+
+        print self.iteration
+        if self.iteration == self.max_iter:
+            self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
+            print "acabé"
+            return
+        else:
+            for adress in self._infected_pop:
+                rand_adress = self._random_adress()
+                if adress == rand_adress:
+                    #TODO: hay que cambiar, podría pasar obtener dos veces
+                    #el mismo
+                    rand_adress = self._random_adress()
+
+                self._propagate(rand_adress)
+                self.iteration += 1
+                #self.space = np.sum(self._pop_array.reshape(self.M,self.N))
+                print "Hay %i adoptantes" % len(self._infected_pop)
+                return self.random_diffusion()
