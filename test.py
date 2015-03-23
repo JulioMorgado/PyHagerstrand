@@ -12,7 +12,7 @@ from classes.diffusion import SimpleDiffusion
 #     matplotlib.use('TkAgg')
 
 if __name__ == "__main__":
-    s = SimpleDiffusion(100,100,9,20,[(50,50),(12,30)],0.3,10)
+    s = SimpleDiffusion(50,50,9,20,[(20,20)],0.3,18)
     s.spatial_diffusion()
     fig = plt.figure()
     gs = gridspec.GridSpec(4,1)
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     ax_i_loc = gs.new_subplotspec((0,0), rowspan=3, colspan=1)
     ax_image = plt.subplot(ax_i_loc)
     ims = []
-    for i in range(0,s.max_iter-1):
+    for i in range(0,s.max_iter):
         im = ax_image.imshow(s.result[:,:,i])
         ims.append([im])
 
