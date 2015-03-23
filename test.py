@@ -1,10 +1,11 @@
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
+#Si usas Mac, descomenta las siguientes líneas:
+#import matplotlib
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
-from classes.diffusion import SimpleDiffusion
+from haggerstrand.diffusion import SimpleDiffusion
 
 # if plt.get_backend() == 'MacOSX':
 #     print 'MAC'
