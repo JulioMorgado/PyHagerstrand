@@ -31,6 +31,9 @@ class SimpleDiffusion(object):
                                 la segunda es el número del poblador en
                                 pop_array. Es decir, la lista de las direcciones
                                 de cada poblador infectado.
+    :attribute results: np.array((M,N,max_iter)) Guarda los resultados de cada
+                        iteración.
+    :attribute time_series: list int Propagaciones por cada iteración
 
     """
 
@@ -49,6 +52,8 @@ class SimpleDiffusion(object):
         self.space = np.zeros((N,M),dtype=np.int8)
         self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
                                     dtype=np.bool)
+        self.result = np.zeros((M,N,max_iter),dtype=np.int8)
+        self.time_series = []
         if initial_diff[0] > M or initial_diff[1] > N:
             raise ValueError("Las coordenadas del difusor inicial no caen \
                                 en el espacio")
@@ -132,12 +137,11 @@ class SimpleDiffusion(object):
         space_adress = self._pop2space_index(adress[0])
         prop_space_adress = (space_adress[0] + delta[0],
                               space_adress[1] + delta[1])
-        if prop_space_adress[0] >= self.M or prop_space_adress[1] >= self.N:
-            #vuelve a intentar hasta obtener una dirección válida
-            return self._get_propagation_adress(adress)
-        else:
+        try:
             habitant = randint(0,self._pob - 1)
             return (self._space2pop_index(prop_space_adress),habitant)
+        except ValueError:
+            return self._get_propagation_adress(adress)
 
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
@@ -150,11 +154,13 @@ class SimpleDiffusion(object):
                 propagated_adress = self._get_propagation_adress(adress)
                 self._propagate(propagated_adress)
 
-            self.iteration += 1
             self._infected_pop.extend(self._tmp_adopted)
+            #print "Hay %i adoptantes" % len(self._infected_pop)
+            self.result[:,:,self.iteration] = np.sum(self._pop_array,
+                                                axis=1).reshape(self.M,self.N)
+            self.time_series.append(len(self._tmp_adopted))
+            self.iteration += 1
             self._tmp_adopted = []
-            #self.space = np.sum(self._pop_array.reshape(self.M,self.N))
-            print "Hay %i adoptantes" % len(self._infected_pop)
             return self.spatial_diffusion()
 
 
@@ -179,10 +185,11 @@ class SimpleDiffusion(object):
                 print "Largo de lista: %i, número de iteraciones %i" % (len(self._infected_pop),self.iteration)
                 self._propagate(rand_adress)
 
-                #self.space = np.sum(self._pop_array.reshape(self.M,self.N))
-            self.iteration += 1
             self._infected_pop.extend(self._tmp_adopted)
-            self._tmp_adopted = []
             print "Hay %i adoptantes" % len(self._infected_pop)
-
+            self.result[:,:,iteration] = np.sum(s._pop_array,axis=1).reshape(
+                                                s.M,s.N)
+            self.time_series.append(len(self-_tmp_adopted))
+            self.iteration += 1
+            self._tmp_adopted = []
             return self.random_diffusion()
