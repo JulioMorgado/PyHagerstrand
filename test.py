@@ -1,11 +1,18 @@
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
 from classes.diffusion import SimpleDiffusion
 
+# if plt.get_backend() == 'MacOSX':
+#     print 'MAC'
+#     import matplotlib
+#     matplotlib.use('TkAgg')
+
 if __name__ == "__main__":
-    s = SimpleDiffusion(100,100,9,20,(50,50),0.3,10)
+    s = SimpleDiffusion(100,100,9,20,[(50,50),(12,30)],0.3,10)
     s.spatial_diffusion()
     fig = plt.figure()
     gs = gridspec.GridSpec(4,1)

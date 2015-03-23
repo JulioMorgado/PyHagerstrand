@@ -18,7 +18,8 @@ class SimpleDiffusion(object):
     :param M: int Número de columnas en el espacio de simulación
     :param mif_size: int Tamaño de la matriz (cuadrada) del MIF (debe ser non)
     :param pob: int población en cada celda
-    :param initial_diff: (int,int) Coordenadas del difusor inicial
+    :param initial_diff: [(int,int)] Lista de coordenadas de los difusores
+                                     iniciales
     :param p0: float Probabilidad de auto-difusión
     :param max_iter: int Máximo número de iteraciones
 
@@ -37,7 +38,7 @@ class SimpleDiffusion(object):
 
     """
 
-    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=(50,50),
+    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=1000):
 
         self.M = M
@@ -54,14 +55,16 @@ class SimpleDiffusion(object):
                                     dtype=np.bool)
         self.result = np.zeros((M,N,max_iter),dtype=np.int8)
         self.time_series = []
-        if initial_diff[0] > M or initial_diff[1] > N:
-            raise ValueError("Las coordenadas del difusor inicial no caen \
-                                en el espacio")
-        self.space[initial_diff[0],initial_diff[1]] = 1
-        #Modificamos también al poblador original:
-        index = self._space2pop_index(initial_diff)
-        self._pop_array[index][0] = True
-        self._infected_pop.append((index,0))
+        for c in initial_diff:
+            if c[0] > M or c[1] > N:
+                raise ValueError("Las coordenadas de los difusores iniciales no \
+                                caen en el espacio")
+            self.space[c[0],c[1]] = 1
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
+            
         if mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
