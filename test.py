@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 #Si usas Mac, descomenta las siguientes líneas:
 #import matplotlib
@@ -14,7 +15,8 @@ from haggerstrand.diffusion import SimpleDiffusion
 
 if __name__ == "__main__":
     s = SimpleDiffusion(50,50,9,20,[(20,20)],0.3,18)
-    s.spatial_diffusion()
+    #s.spatial_diffusion()
+    s.random_diffusion()
     fig = plt.figure()
     gs = gridspec.GridSpec(4,1)
     #gs = gridspec.GridSpec(2,1,width_ratios=[1,2],height_ratios=[2,1])

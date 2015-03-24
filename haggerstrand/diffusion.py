@@ -180,19 +180,18 @@ class SimpleDiffusion(object):
         else:
             for adress in self._infected_pop:
                 rand_adress = self._random_adress()
-                # if adress == rand_adress:
-                #     #TODO: hay que cambiar, podría pasar obtener dos veces
-                #     #el mismo
-                #     rand_adress = self._random_adress()
-                #
-                #print "Largo de lista: %i, número de iteraciones %i" % (len(self._infected_pop),self.iteration)
+                if adress == rand_adress:
+                    #TODO: hay que cambiar, podría pasar obtener dos veces
+                    #el mismo
+                    rand_adress = self._random_adress()
+
                 self._propagate(rand_adress)
 
             self._infected_pop.extend(self._tmp_adopted)
-            print "Hay %i adoptantes" % len(self._infected_pop)
-            self.result[:,:,iteration] = np.sum(s._pop_array,axis=1).reshape(
-                                                s.M,s.N)
-            self.time_series.append(len(self-_tmp_adopted))
+            #print "Hay %i adoptantes" % len(self._infected_pop)
+            self.result[:,:,self.iteration] = np.sum(self._pop_array,
+                                                axis=1).reshape(self.M,self.N)
+            self.time_series.append(len(self._tmp_adopted))
             self.iteration += 1
             self._tmp_adopted = []
             return self.random_diffusion()
