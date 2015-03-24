@@ -148,10 +148,15 @@ class SimpleDiffusion(object):
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
 
-        if self.iteration == self.max_iter:
+        if self.iteration == (self.max_iter or
+                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
+            #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
+            print "Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+            print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
-            return
+            return None
         else:
             for adress in self._infected_pop:
                 propagated_adress = self._get_propagation_adress(adress)
@@ -172,9 +177,13 @@ class SimpleDiffusion(object):
     def random_diffusion(self):
         """Propaga aleatoriamente en el espacio."""
 
-        if self.iteration == self.max_iter:
+        if self.iteration == (self.max_iter or
+                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
+            print "Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+            print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
             return None
         else:
