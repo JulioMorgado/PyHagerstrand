@@ -64,7 +64,7 @@ class SimpleDiffusion(object):
             index = self._space2pop_index(c)
             self._pop_array[index][0] = True
             self._infected_pop.append((index,0))
-            
+
         if mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
@@ -99,10 +99,9 @@ class SimpleDiffusion(object):
         if self._pop_array[pob_adress[0]][pob_adress[1]] == False:
             self._pop_array[pob_adress[0]][pob_adress[1]] = True
             self._tmp_adopted.append(pob_adress)
-            print "infecté al "  + str(pob_adress)
+            #print "infecté al "  + str(pob_adress)
 
         else:
-            print "Pasé"
             pass
 
 
@@ -134,7 +133,7 @@ class SimpleDiffusion(object):
     def _get_propagation_adress(self,adress):
         """Regresa una dirección pop_adress propagada por el MIF"""
 
-        print "Propagó: " + str(adress)
+        #print "Propagó: " + str(adress)
         delta = self._select_from_mif()
         delta = (delta[0] - self.mif_size/2,delta[1] - self.mif_size/2)
         space_adress = self._pop2space_index(adress[0])
@@ -172,7 +171,6 @@ class SimpleDiffusion(object):
     def random_diffusion(self):
         """Propaga aleatoriamente en el espacio."""
 
-        print self.iteration
         if self.iteration == self.max_iter:
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
@@ -185,7 +183,7 @@ class SimpleDiffusion(object):
                 #     #el mismo
                 #     rand_adress = self._random_adress()
                 #
-                print "Largo de lista: %i, número de iteraciones %i" % (len(self._infected_pop),self.iteration)
+                #print "Largo de lista: %i, número de iteraciones %i" % (len(self._infected_pop),self.iteration)
                 self._propagate(rand_adress)
 
             self._infected_pop.extend(self._tmp_adopted)
