@@ -157,6 +157,7 @@ class SimpleDiffusion(object):
             self._tmp_adopted = []
             self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
                                         dtype=np.bool)
+            self.time_series = []
             for c in self._initial_diff:
                 self.space[c[0],c[1]] = 1
                 #Modificamos también a los pobladores originales:
@@ -202,6 +203,7 @@ class SimpleDiffusion(object):
             self._tmp_adopted = []
             self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
                                         dtype=np.bool)
+            self.time_series = []
             for c in self._initial_diff:
                 self.space[c[0],c[1]] = 1
                 #Modificamos también a los pobladores originales:
