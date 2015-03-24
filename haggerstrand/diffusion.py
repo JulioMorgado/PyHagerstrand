@@ -150,6 +150,7 @@ class SimpleDiffusion(object):
 
         if self.iteration == self.max_iter:
             print "acabé"
+            self.iteration = 0
             return
         else:
             for adress in self._infected_pop:
@@ -174,6 +175,7 @@ class SimpleDiffusion(object):
         if self.iteration == self.max_iter:
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
+            self.iteration = 0
             return None
         else:
             for adress in self._infected_pop:
