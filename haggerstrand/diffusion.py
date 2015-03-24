@@ -35,6 +35,7 @@ class SimpleDiffusion(object):
     :attribute results: np.array((M,N,max_iter)) Guarda los resultados de cada
                         iteración.
     :attribute time_series: list int Propagaciones por cada iteración
+    :attribute _clean: bool Indica si tenemos resultados guardados.
 
     """
 
@@ -50,6 +51,8 @@ class SimpleDiffusion(object):
         self.iteration = 0
         self._infected_pop = []
         self._tmp_adopted = []
+        self._clean = False
+        self._initial_diff = initial_diff
         self.space = np.zeros((N,M),dtype=np.int8)
         self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
                                     dtype=np.bool)
@@ -148,6 +151,21 @@ class SimpleDiffusion(object):
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
 
+        #Si ya tenemos resultados hay que limpiar e inicializar
+        if self._clean:
+            self._infected_pop = []
+            self._tmp_adopted = []
+            self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
+                                        dtype=np.bool)
+            for c in self._initial_diff:
+                self.space[c[0],c[1]] = 1
+                #Modificamos también a los pobladores originales:
+                index = self._space2pop_index(c)
+                self._pop_array[index][0] = True
+                self._infected_pop.append((index,0))
+
+            self._clean = False
+
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
@@ -156,6 +174,7 @@ class SimpleDiffusion(object):
                     % (np.sum(self._pop_array),self.M*self.N*self._pob)
             print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
+            self._clean = True
             return None
         else:
             for adress in self._infected_pop:
@@ -177,6 +196,22 @@ class SimpleDiffusion(object):
     def random_diffusion(self):
         """Propaga aleatoriamente en el espacio."""
 
+        #Si ya tenemos resultados hay que limpiar e inicializar
+        if self._clean:
+            self._infected_pop = []
+            self._tmp_adopted = []
+            self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
+                                        dtype=np.bool)
+            for c in self._initial_diff:
+                self.space[c[0],c[1]] = 1
+                #Modificamos también a los pobladores originales:
+                index = self._space2pop_index(c)
+                self._pop_array[index][0] = True
+                self._infected_pop.append((index,0))
+
+            self._clean = False
+
+
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
@@ -185,6 +220,7 @@ class SimpleDiffusion(object):
                     % (np.sum(self._pop_array),self.M*self.N*self._pob)
             print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
+            self._clean = True
             return None
         else:
             for adress in self._infected_pop:
