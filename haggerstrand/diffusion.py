@@ -148,28 +148,32 @@ class SimpleDiffusion(object):
         except ValueError:
             return self._get_propagation_adress(adress)
 
+    def _clean_adopters(self):
+        """Limpia e inicializa antes de una nueva simulación."""
+
+        self._infected_pop = []
+        self._tmp_adopted = []
+        self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
+                                    dtype=np.bool)
+        self.time_series = []
+        for c in self._initial_diff:
+            self.space[c[0],c[1]] = 1
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
+
+        self._clean = False
+
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
 
         #Si ya tenemos resultados hay que limpiar e inicializar
         if self._clean:
-            self._infected_pop = []
-            self._tmp_adopted = []
-            self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
-                                        dtype=np.bool)
-            self.time_series = []
-            for c in self._initial_diff:
-                self.space[c[0],c[1]] = 1
-                #Modificamos también a los pobladores originales:
-                index = self._space2pop_index(c)
-                self._pop_array[index][0] = True
-                self._infected_pop.append((index,0))
-
-            self._clean = False
+            self._clean_adopters()
 
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
-            #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
             print "Hay %i adoptantes de un total de %i habitantes" \
                     % (np.sum(self._pop_array),self.M*self.N*self._pob)
@@ -199,20 +203,7 @@ class SimpleDiffusion(object):
 
         #Si ya tenemos resultados hay que limpiar e inicializar
         if self._clean:
-            self._infected_pop = []
-            self._tmp_adopted = []
-            self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
-                                        dtype=np.bool)
-            self.time_series = []
-            for c in self._initial_diff:
-                self.space[c[0],c[1]] = 1
-                #Modificamos también a los pobladores originales:
-                index = self._space2pop_index(c)
-                self._pop_array[index][0] = True
-                self._infected_pop.append((index,0))
-
-            self._clean = False
-
+            self._clean_adopters()
 
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
@@ -242,3 +233,54 @@ class SimpleDiffusion(object):
             self.iteration += 1
             self._tmp_adopted = []
             return self.random_diffusion()
+
+    def mixed_diffusion(self,proportion=0.5):
+        """ Mezcla los dos tipos de difusión.
+
+            En cada iteración escoge al azar, de acuerdo a proportion, los
+            puntos que difunden aleatoriamente y los que lo hacen espacialmente.
+
+            param proportion: float Proporción de adoptantes que difunden
+                                    espacialmente.
+        """
+
+        if proportion < 0 or proportion > 1:
+            raise ValueError("La proporción debe ser entre 0 y 1.")
+
+        #Si ya tenemos resultados hay que limpiar e inicializar
+        if self._clean:
+            self._clean_adopters()
+
+        if self.iteration == (self.max_iter or
+                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
+            #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
+            print "acabé"
+            print "Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+            print "El total de iteraciones realizadas es %i" % self.iteration
+            self.iteration = 0
+            self._clean = True
+            return None
+        else:
+            for adress in self._infected_pop:
+                rnd = uniform(0,1)
+                if rnd <= proportion:
+                    propagated_adress = self._get_propagation_adress(adress)
+                    self._propagate(propagated_adress)
+                else:
+                    rand_adress = self._random_adress()
+                    if adress == rand_adress:
+                        #TODO: hay que cambiar, podría pasar obtener dos veces
+                        #el mismo
+                        rand_adress = self._random_adress()
+
+                    self._propagate(rand_adress)
+
+            self._infected_pop.extend(self._tmp_adopted)
+            #print "Hay %i adoptantes" % len(self._infected_pop)
+            self.result[:,:,self.iteration] = np.sum(self._pop_array,
+                                                axis=1).reshape(self.M,self.N)
+            self.time_series.append(len(self._tmp_adopted))
+            self.iteration += 1
+            self._tmp_adopted = []
+            return self.mixed_diffusion(proportion)
