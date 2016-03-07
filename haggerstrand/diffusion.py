@@ -4,10 +4,82 @@ from random import randint
 from random import uniform
 import numpy as np
 from scipy.spatial.distance import cdist
+from skimage import filters
 
 
 sys.setrecursionlimit(11500)
-class SimpleDiffusion(object):
+
+class Diffusion(object):
+    """Clase general para tdodos los tipos de difusión."""
+    #por lo pronto solo la creación del espacio se deriva a las clases hijas?
+    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+                p0=0.3, max_iter=15):
+        self.M = M
+        self.N = N
+        self._pob = pob
+        self._p0 = p0
+        self.max_iter = max_iter
+        self.mif_size = mif_size
+        self.iteration = 0
+        self._infected_pop = []
+        self._tmp_adopted = []
+        self._clean = False
+        self._initial_diff = initial_diff
+        self.space = np.zeros((N,M),dtype=np.int8)
+        self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
+                                    dtype=np.bool)
+        self.result = np.zeros((M,N,max_iter),dtype=np.int8)
+        self.time_series = []
+        self.mif_size = mif_size
+        for c in initial_diff:
+            if c[0] > M or c[1] > N:
+                raise ValueError("Las coordenadas de los difusores iniciales no \
+                                caen en el espacio")
+            #self.space[c[0],c[1]] = 1
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
+
+    def initialize_mif(self,mif_size):
+        """Inicializa el MIF"""
+        x = np.linspace(0.5,mif_size - 0.5,mif_size)
+        y = np.linspace(0.5,mif_size - 0.5,mif_size)
+        xv,yv = np.meshgrid(x,y)
+        points = np.array(zip(np.ravel(xv),np.ravel(yv)))
+        center = np.array([[mif_size/2 + 0.5,mif_size/2 + 0.5]])
+        dist = cdist(center,points)
+        dist = dist/np.sum(dist)
+        #TODO: tiene que ser diferente para respetar el p0 del usuario
+        dist.reshape(mif_size,mif_size)[mif_size/2,mif_size/2] = self._p0
+        dist = dist/np.sum(dist)
+        return np.cumsum(dist)
+
+    def _space2pop_index(self,index):
+        """Transforma el índice de space en el índice del pop_array.
+        :param index (int,int) el ínidice a transformar
+        """
+        return np.ravel_multi_index(index,dims=(self.M,self.N))
+
+    def _pop2space_index(self,index):
+        """Regresa la tupla (i,j) que corresponde al índice aplanado."""
+        return np.unravel_index(index,dims=(self.M,self.N))
+
+    def _mif2delta(self,index):
+        """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
+
+        return np.unravel_index(index,dims=(self.mif_size,self.mif_size))
+
+    def _select_from_mif(self):
+        """Regresa una dirección (pob_adress) a partir del MIF."""
+        rnd = uniform(0,1)
+        index = np.nonzero(self._mif>rnd)[0][0]
+        return self._mif2delta(index)
+
+
+
+
+class SimpleDiffusion(Diffusion):
     """Modelo simple de difusión espacial basado en Hägerstrand.
 
     1.- Espacio homogeneo e isotrópico
@@ -40,55 +112,17 @@ class SimpleDiffusion(object):
     """
 
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
-                p0=0.3, max_iter=1000):
-
-        self.M = M
-        self.N = N
-        self._pob = pob
-        self._p0 = p0
-        self.max_iter = max_iter
-        self.mif_size = mif_size
-        self.iteration = 0
-        self._infected_pop = []
-        self._tmp_adopted = []
-        self._clean = False
-        self._initial_diff = initial_diff
-        self.space = np.zeros((N,M),dtype=np.int8)
-        self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
-                                    dtype=np.bool)
-        self.result = np.zeros((M,N,max_iter),dtype=np.int8)
-        self.time_series = []
-        for c in initial_diff:
-            if c[0] > M or c[1] > N:
-                raise ValueError("Las coordenadas de los difusores iniciales no \
-                                caen en el espacio")
-            self.space[c[0],c[1]] = 1
-            #Modificamos también a los pobladores originales:
-            index = self._space2pop_index(c)
-            self._pop_array[index][0] = True
-            self._infected_pop.append((index,0))
-
-        if mif_size%2 == 0:
+                p0=0.3, max_iter=15):
+        super(SimpleDiffusion,self).__init__(N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+                    p0=0.3, max_iter=15)
+        self.space = np.zeros((self.N,self.M),dtype=np.int8)
+        if self.mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
-            self._mif = self._initialize_mif(mif_size)
+            self._mif = self.initialize_mif(self.mif_size)
 
-
-    def _initialize_mif(self,mif_size):
-        """Inicializa el MIF"""
-        x = np.linspace(0.5,mif_size - 0.5,mif_size)
-        y = np.linspace(0.5,mif_size - 0.5,mif_size)
-        xv,yv = np.meshgrid(x,y)
-        points = np.array(zip(np.ravel(xv),np.ravel(yv)))
-        center = np.array([[mif_size/2 + 0.5,mif_size/2 + 0.5]])
-        dist = cdist(center,points)
-        dist = dist/np.sum(dist)
-        #TODO: tiene que ser diferente para respetar el p0 del usuario
-        dist.reshape(mif_size,mif_size)[mif_size/2,mif_size/2] = self._p0
-        dist = dist/np.sum(dist)
-        return np.cumsum(dist)
-
-
+    def initialize_mif(self,mif_size):
+        return super(SimpleDiffusion,self).initialize_mif(self.mif_size)
 
     def _propagate(self,pob_adress):
         """Propaga hacia el habitante en pob_adress si es no-adoptante.
@@ -112,16 +146,15 @@ class SimpleDiffusion(object):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
-        return np.ravel_multi_index(index,dims=(self.M,self.N))
+        return super(SimpleDiffusion,self)._space2pop_index(index)
 
     def _pop2space_index(self,index):
         """Regresa la tupla (i,j) que corresponde al índice aplanado."""
-        return np.unravel_index(index,dims=(self.M,self.N))
+        return super(SimpleDiffusion,self)._pop2space_index(index)
 
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
-
-        return np.unravel_index(index,dims=(self.mif_size,self.mif_size))
+        return super(SimpleDiffusion,self)._mif2delta(index)
 
     def _random_adress(self):
         """Regresa una dirección (pob_adress) al azar."""
@@ -129,9 +162,7 @@ class SimpleDiffusion(object):
 
     def _select_from_mif(self):
         """Regresa una dirección (pob_adress) a partir del MIF."""
-        rnd = uniform(0,1)
-        index = np.nonzero(self._mif>rnd)[0][0]
-        return self._mif2delta(index)
+        return super(SimpleDiffusion,self)._select_from_mif()
 
     def _get_propagation_adress(self,adress):
         """Regresa una dirección pop_adress propagada por el MIF"""
@@ -194,9 +225,6 @@ class SimpleDiffusion(object):
             self.iteration += 1
             self._tmp_adopted = []
             return self.spatial_diffusion()
-
-
-
 
     def random_diffusion(self):
         """Propaga aleatoriamente en el espacio."""
@@ -284,3 +312,94 @@ class SimpleDiffusion(object):
             self.iteration += 1
             self._tmp_adopted = []
             return self.mixed_diffusion(proportion)
+
+class AdvancedDiffusion(Diffusion):
+    """s"""
+    #TODO: En este caso la matriz debe ser cuadrada, solo necesitamos un par (M o N)
+    #TODO: Falta pasar n, la densidad de núcleos.
+    #TODO: Falta pasar la amplitud del filtro gaussiano como parámetro
+    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+                p0=0.3, max_iter=1000):
+        super(AdvancedDiffusion,self).__init__(N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+                    p0=0.3, max_iter=15)
+        self.space = np.zeros((self.N,self.N),dtype=np.int8)
+        #l = 256
+        n = 20 #Controla la densidad de núcleos
+        points = self.M * np.random.random((2, n ** 2))
+        self.space[(points[0]).astype(np.int), (points[1]).astype(np.int)] = 1
+        self.space = filters.gaussian_filter(self.space, sigma= self.M / (4. * n))
+        #reescalamos al valor de la pob máxima y convertimos a entero:
+        self.space *= self.pob / self.space.max()
+        self.sapce = self.space.astype(np.int8)
+        if self.mif_size%2 == 0:
+            raise ValueError("El tamaño del MIF debe ser non")
+        else:
+            self._mif = self.initialize_mif(self.mif_size)
+
+    def _space2pop_index(self,index):
+        """Transforma el índice de space en el índice del pop_array.
+        :param index (int,int) el ínidice a transformar
+        """
+        return super(AdvancedDiffusion,self)._space2pop_index(index)
+
+    def _pop2space_index(self,index):
+        """Regresa la tupla (i,j) que corresponde al índice aplanado."""
+        return super(AdvancedDiffusion,self)._pop2space_index(index)
+
+    def _mif2delta(self,index):
+        """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
+        return super(AdvancedDiffusion,self)._mif2delta(index)
+
+    def _select_from_mif(self):
+        """Regresa una dirección (pob_adress) a partir del MIF."""
+        return super(AdvancedDiffusion,self)._select_from_mif()
+
+    def _random_adress(self):
+        """Regresa una dirección (pob_adress) al azar."""
+        #TODO: el segundo randint, debe ser sólo entre 0 y el num de habitantes en la celda!
+        return (randint(0,(self.M*self.N) - 1),randint(0,self._pob - 1))
+
+    def _get_propagation_adress(self,adress):
+        """Regresa una dirección pop_adress propagada por el MIF"""
+
+        #print "Propagó: " + str(adress)
+        delta = self._select_from_mif()
+        delta = (delta[0] - self.mif_size/2,delta[1] - self.mif_size/2)
+        space_adress = self._pop2space_index(adress[0])
+        prop_space_adress = (space_adress[0] + delta[0],
+                              space_adress[1] + delta[1])
+        try:
+            habitant = randint(0,self.space[prop_space_adress[0],prop_space_adress[1]])
+            return (self._space2pop_index(prop_space_adress),habitant)
+        except ValueError:
+            return self._get_propagation_adress(adress)
+
+    def spatial_diffusion(self):
+        """Propaga al estilo Hagerstrand."""
+
+        #Si ya tenemos resultados hay que limpiar e inicializar
+        if self._clean:
+            self._clean_adopters()
+
+        if self.iteration == (self.max_iter or
+                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
+            print "acabé"
+            print "Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+            print "El total de iteraciones realizadas es %i" % self.iteration
+            self.iteration = 0
+            self._clean = True
+            return None
+        else:
+            for adress in self._infected_pop:
+                propagated_adress = self._get_propagation_adress(adress)
+                self._propagate(propagated_adress)
+
+            self._infected_pop.extend(self._tmp_adopted)
+            #print "Hay %i adoptantes" % len(self._infected_pop)
+            self.result[:,:,self.iteration] = np.sum(self._pop_array,
+                                                axis=1).reshape(self.M,self.N)
+            self.time_series.append(len(self._tmp_adopted))
+            self.iteration += 1
+            self._tmp_adopted = []
+            return self.spatial_diffusion()
