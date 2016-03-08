@@ -305,7 +305,37 @@ class SimpleDiffusion(Diffusion):
             return self.mixed_diffusion(proportion)
 
 class AdvancedDiffusion(Diffusion):
-    """s"""
+    """Modelo de difusión espacial basado en Hägerstrand, con espacio heterogéneo.
+
+    1.- Espacio isotrópico
+    2.- Un sólo difusor inicial
+    3.- ....otras suposiciones...
+
+    :param N: int Número de renglones y columnas en el espacio de simulación
+    :param mif_size: int Tamaño de la matriz (cuadrada) del MIF (debe ser non)
+    :param pob: int población máxima en cada celda
+    :param densidad: int Cantidad de núcleos iniciales de población.
+    :param amplitud: float Amplitud del filtro gaussiano para difuminar la población.
+    :param initial_diff: [(int,int)] Lista de coordenadas de los difusores
+                                     iniciales
+    :param p0: float Probabilidad de auto-difusión
+    :param max_iter: int Máximo número de iteraciones
+
+    :attribute space: np.array(N,N,dtype=np.int8) El espacio disponible
+    :attribute _pop_array: np.array(N*N,pob,dtype=np.bool) array de habitantes
+                           en cada celda
+    :attribute _infected_pop: list (space_idx,int) Lista de los índices de las
+                                celdas adoptantes. La primera entrada es el
+                                índice aplanado de la celda en la matriz space y
+                                la segunda es el número del poblador en
+                                pop_array. Es decir, la lista de las direcciones
+                                de cada poblador infectado.
+    :attribute results: np.array((N,N,max_iter)) Guarda los resultados de cada
+                        iteración.
+    :attribute time_series: list int Propagaciones por cada iteración
+    :attribute _clean: bool Indica si tenemos resultados guardados.
+
+    """
 
     def __init__(self,N=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=25,densidad=20,amplitud=4.0):
@@ -315,8 +345,6 @@ class AdvancedDiffusion(Diffusion):
         self.densidad = densidad
         self.amplitud = amplitud
         self.space = np.zeros((self.N,self.N),dtype=np.int8)
-        #l = 256
-        n = 20 #Controla la densidad de núcleos
         points = self.N * np.random.random((2, self.densidad ** 2))
         self.space[(points[0]).astype(np.int), (points[1]).astype(np.int)] = 1
         self.space = filters.gaussian_filter(self.space, sigma= self.N / (self.amplitud * self.densidad))
