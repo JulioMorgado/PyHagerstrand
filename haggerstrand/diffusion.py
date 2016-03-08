@@ -306,20 +306,20 @@ class SimpleDiffusion(Diffusion):
 
 class AdvancedDiffusion(Diffusion):
     """s"""
-    #TODO: En este caso la matriz debe ser cuadrada, solo necesitamos un par (M o N)
-    #TODO: Falta pasar n, la densidad de núcleos.
-    #TODO: Falta pasar la amplitud del filtro gaussiano como parámetro
+
     def __init__(self,N=100,mif_size=5,pob=20,initial_diff=[(50,50)],
-                p0=0.3, max_iter=25):
+                p0=0.3, max_iter=25,densidad=20,amplitud=4.0):
         super(AdvancedDiffusion,self).__init__(mif_size=5,pob=20,initial_diff=[(50,50)],
                     p0=0.3, max_iter=25)
         self.N = N
+        self.densidad = densidad
+        self.amplitud = amplitud
         self.space = np.zeros((self.N,self.N),dtype=np.int8)
         #l = 256
         n = 20 #Controla la densidad de núcleos
-        points = self.N * np.random.random((2, n ** 2))
+        points = self.N * np.random.random((2, self.densidad ** 2))
         self.space[(points[0]).astype(np.int), (points[1]).astype(np.int)] = 1
-        self.space = filters.gaussian_filter(self.space, sigma= self.N / (4. * n))
+        self.space = filters.gaussian_filter(self.space, sigma= self.N / (self.amplitud * self.densidad))
         #reescalamos al valor de la pob máxima y convertimos a entero:
         self.space *= self._pob / self.space.max()
         self.space = self.space.astype(np.int8)
