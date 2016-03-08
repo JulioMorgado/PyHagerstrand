@@ -319,9 +319,9 @@ class AdvancedDiffusion(Diffusion):
     #TODO: Falta pasar n, la densidad de núcleos.
     #TODO: Falta pasar la amplitud del filtro gaussiano como parámetro
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
-                p0=0.3, max_iter=1000):
+                p0=0.3, max_iter=25):
         super(AdvancedDiffusion,self).__init__(N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
-                    p0=0.3, max_iter=15)
+                    p0=0.3, max_iter=25)
         self.space = np.zeros((self.N,self.N),dtype=np.int8)
         #l = 256
         n = 20 #Controla la densidad de núcleos
@@ -329,8 +329,8 @@ class AdvancedDiffusion(Diffusion):
         self.space[(points[0]).astype(np.int), (points[1]).astype(np.int)] = 1
         self.space = filters.gaussian_filter(self.space, sigma= self.M / (4. * n))
         #reescalamos al valor de la pob máxima y convertimos a entero:
-        self.space *= self.pob / self.space.max()
-        self.sapce = self.space.astype(np.int8)
+        self.space *= self._pob / self.space.max()
+        self.space = self.space.astype(np.int8)
         if self.mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
@@ -371,8 +371,25 @@ class AdvancedDiffusion(Diffusion):
         try:
             habitant = randint(0,self.space[prop_space_adress[0],prop_space_adress[1]])
             return (self._space2pop_index(prop_space_adress),habitant)
-        except ValueError:
+        except ValueError as e:
             return self._get_propagation_adress(adress)
+
+    def _propagate(self,pob_adress):
+        """Propaga hacia el habitante en pob_adress si es no-adoptante.
+
+        :param pob_adress: (int,int) la dirección del habitante a propagar.
+                            La primera entrada es el índice (aplanado) en space
+                            y la segunda es el número del poblador en la celda
+        """
+
+        #checo si es no-adoptante
+        if self._pop_array[pob_adress[0]][pob_adress[1]] == False:
+            self._pop_array[pob_adress[0]][pob_adress[1]] = True
+            self._tmp_adopted.append(pob_adress)
+            #print "infecté al "  + str(pob_adress)
+
+        else:
+            pass
 
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
@@ -398,7 +415,7 @@ class AdvancedDiffusion(Diffusion):
             self._infected_pop.extend(self._tmp_adopted)
             #print "Hay %i adoptantes" % len(self._infected_pop)
             self.result[:,:,self.iteration] = np.sum(self._pop_array,
-                                                axis=1).reshape(self.M,self.N)
+                                                axis=1).reshape(self.M,self.M)
             self.time_series.append(len(self._tmp_adopted))
             self.iteration += 1
             self._tmp_adopted = []
