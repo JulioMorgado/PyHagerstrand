@@ -12,10 +12,8 @@ sys.setrecursionlimit(11500)
 class Diffusion(object):
     """Clase general para tdodos los tipos de difusión."""
     #por lo pronto solo la creación del espacio se deriva a las clases hijas?
-    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+    def __init__(self,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=15):
-        self.M = M
-        self.N = N
         self._pob = pob
         self._p0 = p0
         self.max_iter = max_iter
@@ -25,21 +23,8 @@ class Diffusion(object):
         self._tmp_adopted = []
         self._clean = False
         self._initial_diff = initial_diff
-        self.space = np.zeros((N,M),dtype=np.int8)
-        self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
-                                    dtype=np.bool)
-        self.result = np.zeros((M,N,max_iter),dtype=np.int8)
         self.time_series = []
         self.mif_size = mif_size
-        for c in initial_diff:
-            if c[0] > M or c[1] > N:
-                raise ValueError("Las coordenadas de los difusores iniciales no \
-                                caen en el espacio")
-            #self.space[c[0],c[1]] = 1
-            #Modificamos también a los pobladores originales:
-            index = self._space2pop_index(c)
-            self._pop_array[index][0] = True
-            self._infected_pop.append((index,0))
 
     def initialize_mif(self,mif_size):
         """Inicializa el MIF"""
@@ -55,15 +40,6 @@ class Diffusion(object):
         dist = dist/np.sum(dist)
         return np.cumsum(dist)
 
-    def _space2pop_index(self,index):
-        """Transforma el índice de space en el índice del pop_array.
-        :param index (int,int) el ínidice a transformar
-        """
-        return np.ravel_multi_index(index,dims=(self.M,self.N))
-
-    def _pop2space_index(self,index):
-        """Regresa la tupla (i,j) que corresponde al índice aplanado."""
-        return np.unravel_index(index,dims=(self.M,self.N))
 
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
@@ -128,9 +104,22 @@ class SimpleDiffusion(Diffusion):
 
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=15):
-        super(SimpleDiffusion,self).__init__(N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+        super(SimpleDiffusion,self).__init__(mif_size=5,pob=20,initial_diff=[(50,50)],
                     p0=0.3, max_iter=15)
+        self.M = M
+        self.N = N
         self.space = np.zeros((self.N,self.M),dtype=np.int8)
+        self._pop_array = np.zeros((len(np.ravel(self.space)),pob),
+                                    dtype=np.bool)
+        self.result = np.zeros((M,N,max_iter),dtype=np.int8)
+        for c in initial_diff:
+            if c[0] > M or c[1] > N:
+                raise ValueError("Las coordenadas de los difusores iniciales no \
+                                caen en el espacio")
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
         if self.mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
@@ -161,11 +150,11 @@ class SimpleDiffusion(Diffusion):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
-        return super(SimpleDiffusion,self)._space2pop_index(index)
+        return np.ravel_multi_index(index,dims=(self.M,self.N))
 
     def _pop2space_index(self,index):
         """Regresa la tupla (i,j) que corresponde al índice aplanado."""
-        return super(SimpleDiffusion,self)._pop2space_index(index)
+        return np.unravel_index(index,dims=(self.M,self.N))
 
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
@@ -320,19 +309,32 @@ class AdvancedDiffusion(Diffusion):
     #TODO: En este caso la matriz debe ser cuadrada, solo necesitamos un par (M o N)
     #TODO: Falta pasar n, la densidad de núcleos.
     #TODO: Falta pasar la amplitud del filtro gaussiano como parámetro
-    def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+    def __init__(self,N=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=25):
-        super(AdvancedDiffusion,self).__init__(N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
+        super(AdvancedDiffusion,self).__init__(mif_size=5,pob=20,initial_diff=[(50,50)],
                     p0=0.3, max_iter=25)
+        self.N = N
         self.space = np.zeros((self.N,self.N),dtype=np.int8)
         #l = 256
         n = 20 #Controla la densidad de núcleos
-        points = self.M * np.random.random((2, n ** 2))
+        points = self.N * np.random.random((2, n ** 2))
         self.space[(points[0]).astype(np.int), (points[1]).astype(np.int)] = 1
-        self.space = filters.gaussian_filter(self.space, sigma= self.M / (4. * n))
+        self.space = filters.gaussian_filter(self.space, sigma= self.N / (4. * n))
         #reescalamos al valor de la pob máxima y convertimos a entero:
         self.space *= self._pob / self.space.max()
         self.space = self.space.astype(np.int8)
+        self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
+                                    dtype=np.bool)
+        self.result = np.zeros((self.N,self.N,max_iter),dtype=np.int8)
+        for c in initial_diff:
+            if c[0] > self.N or c[1] > self.N:
+                raise ValueError("Las coordenadas de los difusores iniciales no \
+                                caen en el espacio")
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
+
         if self.mif_size%2 == 0:
             raise ValueError("El tamaño del MIF debe ser non")
         else:
@@ -342,11 +344,11 @@ class AdvancedDiffusion(Diffusion):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
-        return super(AdvancedDiffusion,self)._space2pop_index(index)
+        return np.ravel_multi_index(index,dims=(self.N,self.N))
 
     def _pop2space_index(self,index):
         """Regresa la tupla (i,j) que corresponde al índice aplanado."""
-        return super(AdvancedDiffusion,self)._pop2space_index(index)
+        return np.unravel_index(index,dims=(self.N,self.N))
 
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
@@ -411,7 +413,7 @@ class AdvancedDiffusion(Diffusion):
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
             print "acabé"
             print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+                    % (np.sum(self._pop_array),self.N * self.N * self._pob)
             print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
             self._clean = True
@@ -424,7 +426,7 @@ class AdvancedDiffusion(Diffusion):
             self._infected_pop.extend(self._tmp_adopted)
             #print "Hay %i adoptantes" % len(self._infected_pop)
             self.result[:,:,self.iteration] = np.sum(self._pop_array,
-                                                axis=1).reshape(self.M,self.M)
+                                                axis=1).reshape(self.N,self.N)
             self.time_series.append(len(self._tmp_adopted))
             self.iteration += 1
             self._tmp_adopted = []
@@ -438,11 +440,11 @@ class AdvancedDiffusion(Diffusion):
             self._clean_adopters()
 
         if self.iteration == (self.max_iter or
-                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
+                              np.sum(self._pop_array) >= self.N*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
             print "acabé"
             print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+                    % (np.sum(self._pop_array),self.N*self.N*self._pob)
             print "El total de iteraciones realizadas es %i" % self.iteration
             self.iteration = 0
             self._clean = True
@@ -460,7 +462,7 @@ class AdvancedDiffusion(Diffusion):
             self._infected_pop.extend(self._tmp_adopted)
             #print "Hay %i adoptantes" % len(self._infected_pop)
             self.result[:,:,self.iteration] = np.sum(self._pop_array,
-                                                axis=1).reshape(self.M,self.N)
+                                                axis=1).reshape(self.N,self.N)
             self.time_series.append(len(self._tmp_adopted))
             self.iteration += 1
             self._tmp_adopted = []
