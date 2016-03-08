@@ -76,7 +76,22 @@ class Diffusion(object):
         index = np.nonzero(self._mif>rnd)[0][0]
         return self._mif2delta(index)
 
+    def _clean_adopters(self):
+        """Limpia e inicializa antes de una nueva simulación."""
 
+        self._infected_pop = []
+        self._tmp_adopted = []
+        self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
+                                    dtype=np.bool)
+        self.time_series = []
+        for c in self._initial_diff:
+            self.space[c[0],c[1]] = 1
+            #Modificamos también a los pobladores originales:
+            index = self._space2pop_index(c)
+            self._pop_array[index][0] = True
+            self._infected_pop.append((index,0))
+
+        self._clean = False
 
 
 class SimpleDiffusion(Diffusion):
@@ -181,20 +196,7 @@ class SimpleDiffusion(Diffusion):
 
     def _clean_adopters(self):
         """Limpia e inicializa antes de una nueva simulación."""
-
-        self._infected_pop = []
-        self._tmp_adopted = []
-        self._pop_array = np.zeros((len(np.ravel(self.space)),self._pob),
-                                    dtype=np.bool)
-        self.time_series = []
-        for c in self._initial_diff:
-            self.space[c[0],c[1]] = 1
-            #Modificamos también a los pobladores originales:
-            index = self._space2pop_index(c)
-            self._pop_array[index][0] = True
-            self._infected_pop.append((index,0))
-
-        self._clean = False
+        return super(SimpleDiffusion,self)._clean_adopters()
 
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
@@ -393,6 +395,10 @@ class AdvancedDiffusion(Diffusion):
 
         else:
             pass
+
+    def _clean_adopters(self):
+        """Limpia e inicializa antes de una nueva simulación."""
+        return super(AdvancedDiffusion,self)._clean_adopters()
 
     def spatial_diffusion(self):
         """Propaga al estilo Hagerstrand."""
