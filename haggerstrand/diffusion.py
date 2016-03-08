@@ -356,8 +356,11 @@ class AdvancedDiffusion(Diffusion):
 
     def _random_adress(self):
         """Regresa una dirección (pob_adress) al azar."""
-        #TODO: el segundo randint, debe ser sólo entre 0 y el num de habitantes en la celda!
-        return (randint(0,(self.M*self.N) - 1),randint(0,self._pob - 1))
+        i = randint(0,self.N - 1)
+        j = randint(0,self.N - 1)
+        pop_idx = self._space2pop_index((i,j))
+        #space_idx = self._pop2space_index(i*j)
+        return (pop_idx,randint(0,self.space[i,j] - 1))
 
     def _get_propagation_adress(self,adress):
         """Regresa una dirección pop_adress propagada por el MIF"""
@@ -420,3 +423,39 @@ class AdvancedDiffusion(Diffusion):
             self.iteration += 1
             self._tmp_adopted = []
             return self.spatial_diffusion()
+
+    def random_diffusion(self):
+        """Propaga aleatoriamente en el espacio."""
+
+        #Si ya tenemos resultados hay que limpiar e inicializar
+        if self._clean:
+            self._clean_adopters()
+
+        if self.iteration == (self.max_iter or
+                              np.sum(self._pop_array) >= self.M*self.N*self._pob):
+            #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
+            print "acabé"
+            print "Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
+            print "El total de iteraciones realizadas es %i" % self.iteration
+            self.iteration = 0
+            self._clean = True
+            return None
+        else:
+            for adress in self._infected_pop:
+                rand_adress = self._random_adress()
+                if adress == rand_adress:
+                    #TODO: hay que cambiar, podría pasar obtener dos veces
+                    #el mismo
+                    rand_adress = self._random_adress()
+
+                self._propagate(rand_adress)
+
+            self._infected_pop.extend(self._tmp_adopted)
+            #print "Hay %i adoptantes" % len(self._infected_pop)
+            self.result[:,:,self.iteration] = np.sum(self._pop_array,
+                                                axis=1).reshape(self.M,self.N)
+            self.time_series.append(len(self._tmp_adopted))
+            self.iteration += 1
+            self._tmp_adopted = []
+            return self.random_diffusion()
