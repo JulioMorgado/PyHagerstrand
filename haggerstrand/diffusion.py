@@ -104,8 +104,10 @@ class SimpleDiffusion(Diffusion):
 
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=15):
-        super(SimpleDiffusion,self).__init__(mif_size=5,pob=20,initial_diff=[(50,50)],
-                    p0=0.3, max_iter=15)
+
+
+        super(SimpleDiffusion,self).__init__(mif_size,pob,initial_diff,
+                    p0, max_iter)
         self.M = M
         self.N = N
         self.space = np.zeros((self.N,self.M),dtype=np.int8)
@@ -339,8 +341,8 @@ class AdvancedDiffusion(Diffusion):
 
     def __init__(self,N=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=25,densidad=20,amplitud=4.0):
-        super(AdvancedDiffusion,self).__init__(mif_size=5,pob=20,initial_diff=[(50,50)],
-                    p0=0.3, max_iter=25)
+        super(AdvancedDiffusion,self).__init__(mif_size,pob,initial_diff, p0,
+                                                max_iter)
         self.N = N
         self.densidad = densidad
         self.amplitud = amplitud
