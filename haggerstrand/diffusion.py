@@ -4,8 +4,7 @@ from random import randint
 from random import uniform
 import numpy as np
 from scipy.spatial.distance import cdist
-from skimage import filters
-
+from skimage import data, io, filters
 
 sys.setrecursionlimit(11500)
 
@@ -31,12 +30,15 @@ class Diffusion(object):
         x = np.linspace(0.5,mif_size - 0.5,mif_size)
         y = np.linspace(0.5,mif_size - 0.5,mif_size)
         xv,yv = np.meshgrid(x,y)
-        points = np.array(zip(np.ravel(xv),np.ravel(yv)))
+        points = np.array(list(zip(np.ravel(xv),np.ravel(yv))))
         center = np.array([[mif_size/2 + 0.5,mif_size/2 + 0.5]])
+        #print(points)
+        #print(center)
         dist = cdist(center,points)
         dist = dist/np.sum(dist)
         #TODO: tiene que ser diferente para respetar el p0 del usuario
-        dist.reshape(mif_size,mif_size)[mif_size/2,mif_size/2] = self._p0
+        # print(type(mif_size), type(mif_size/2), mif_size/2)
+        dist.reshape(mif_size, mif_size)[int(mif_size/2 + 0.5), int(mif_size/2 + 0.5)] = self._p0
         dist = dist/np.sum(dist)
         return np.cumsum(dist)
 
@@ -152,6 +154,7 @@ class SimpleDiffusion(Diffusion):
         """Transforma el índice de space en el índice del pop_array.
         :param index (int,int) el ínidice a transformar
         """
+        # print(type(index), index)
         return np.ravel_multi_index(index,dims=(self.M,self.N))
 
     def _pop2space_index(self,index):
@@ -175,7 +178,7 @@ class SimpleDiffusion(Diffusion):
 
         #print "Propagó: " + str(adress)
         delta = self._select_from_mif()
-        delta = (delta[0] - self.mif_size/2,delta[1] - self.mif_size/2)
+        delta = (delta[0] - int(self.mif_size/2+0.5),delta[1] - int(self.mif_size/2+0.5))
         space_adress = self._pop2space_index(adress[0])
         prop_space_adress = (space_adress[0] + delta[0],
                               space_adress[1] + delta[1])
@@ -198,10 +201,10 @@ class SimpleDiffusion(Diffusion):
 
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
-            print "acabé"
-            print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
-            print "El total de iteraciones realizadas es %i" % self.iteration
+            print("acabé")
+            print("Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob))
+            print("El total de iteraciones realizadas es %i" % self.iteration)
             self.iteration = 0
             self._clean = True
             return None
@@ -229,10 +232,10 @@ class SimpleDiffusion(Diffusion):
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
-            print "acabé"
-            print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
-            print "El total de iteraciones realizadas es %i" % self.iteration
+            print("acabé")
+            print("Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob))
+            print("El total de iteraciones realizadas es %i" % self.iteration)
             self.iteration = 0
             self._clean = True
             return None
@@ -275,10 +278,10 @@ class SimpleDiffusion(Diffusion):
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
-            print "acabé"
-            print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.M*self.N*self._pob)
-            print "El total de iteraciones realizadas es %i" % self.iteration
+            print("acabé")
+            print("Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.M*self.N*self._pob))
+            print("El total de iteraciones realizadas es %i" % self.iteration)
             self.iteration = 0
             self._clean = True
             return None
@@ -441,10 +444,10 @@ class AdvancedDiffusion(Diffusion):
 
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.M*self.N*self._pob):
-            print "acabé"
-            print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.N * self.N * self._pob)
-            print "El total de iteraciones realizadas es %i" % self.iteration
+            print("acabé")
+            print("Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.N * self.N * self._pob))
+            print("El total de iteraciones realizadas es %i" % self.iteration)
             self.iteration = 0
             self._clean = True
             return None
@@ -472,10 +475,10 @@ class AdvancedDiffusion(Diffusion):
         if self.iteration == (self.max_iter or
                               np.sum(self._pop_array) >= self.N*self.N*self._pob):
             #self.space = np.sum(s._pop_array,axis=1).reshape(s.M,s.N)
-            print "acabé"
-            print "Hay %i adoptantes de un total de %i habitantes" \
-                    % (np.sum(self._pop_array),self.N*self.N*self._pob)
-            print "El total de iteraciones realizadas es %i" % self.iteration
+            print("acabé")
+            print("Hay %i adoptantes de un total de %i habitantes" \
+                    % (np.sum(self._pop_array),self.N*self.N*self._pob))
+            print("El total de iteraciones realizadas es %i" % self.iteration)
             self.iteration = 0
             self._clean = True
             return None
