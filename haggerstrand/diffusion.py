@@ -46,7 +46,7 @@ class Diffusion(object):
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
 
-        return np.unravel_index(index,dims=(self.mif_size,self.mif_size))
+        return np.unravel_index(index,(self.mif_size,self.mif_size))
 
     def _select_from_mif(self):
         """Regresa una dirección (pob_adress) a partir del MIF."""
@@ -107,9 +107,9 @@ class SimpleDiffusion(Diffusion):
     def __init__(self,N=100,M=100,mif_size=5,pob=20,initial_diff=[(50,50)],
                 p0=0.3, max_iter=15):
 
-
-        super(SimpleDiffusion,self).__init__(mif_size,pob,initial_diff,
-                    p0, max_iter)
+        super().__init__(mif_size, pob, initial_diff, p0, max_iter)
+        # super(SimpleDiffusion,self).__init__(mif_size,pob,initial_diff,
+        #             p0, max_iter)
         self.M = M
         self.N = N
         self.space = np.zeros((self.N,self.M),dtype=np.int8)
@@ -159,7 +159,7 @@ class SimpleDiffusion(Diffusion):
 
     def _pop2space_index(self,index):
         """Regresa la tupla (i,j) que corresponde al índice aplanado."""
-        return np.unravel_index(index,dims=(self.M,self.N))
+        return np.unravel_index(index, (self.M,self.N))
 
     def _mif2delta(self,index):
         """Regresa un tupla con los incrementos para llegar al cuadro propagado."""
